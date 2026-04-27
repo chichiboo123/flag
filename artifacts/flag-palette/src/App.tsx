@@ -774,7 +774,7 @@ function App() {
               </div>
 
               {/* Color buttons - circles only, centered */}
-              <div className="flex flex-wrap justify-center gap-2.5">
+              <div className="flex flex-wrap justify-center gap-2.5 relative">
                 {/* All button */}
                 <button
                   onClick={() => setSelectedColor(null)}
