@@ -14,6 +14,17 @@ const CUSTOM_FLAGS: Record<string, string> = {
   AN: "/an.png",
 };
 
+const EXTRACTION_COLOR_HEX: Record<string, string> = {
+  red: "#d22f27",
+  blue: "#0052b4",
+  yellow: "#f7d117",
+  green: "#1a9f49",
+  white: "#ffffff",
+  black: "#000000",
+  orange: "#f28c28",
+  purple: "#7e3af2",
+};
+
 function getFlagSrc(iso: string, size: number): string {
   if (CUSTOM_FLAGS[iso]) return CUSTOM_FLAGS[iso];
   return `https://flagcdn.com/w${size}/${iso.toLowerCase()}.png`;
@@ -46,7 +57,7 @@ function extractFlagColors(iso: string, colorKeys: string[]): Promise<Record<str
         const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
         const targets = colorKeys.map((key) => {
-          const hex = COLOR_HEX[key] || "#888888";
+          const hex = EXTRACTION_COLOR_HEX[key] || COLOR_HEX[key] || "#888888";
           return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)] as [number, number, number];
         });
 
