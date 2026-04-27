@@ -500,7 +500,6 @@ function App() {
   const [paletteName, setPaletteName] = useState("");
   const [paletteMemo, setPaletteMemo] = useState("");
   const [toast, setToast] = useState<string | null>(null);
-  const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [flagHexColors, setFlagHexColors] = useState<Record<string, string>>({});
 
@@ -546,14 +545,12 @@ function App() {
     link.href = URL.createObjectURL(blob);
     link.download = `${paletteName || "flag-palette"}.json`;
     link.click();
-    setShowSaveMenu(false);
     showToast(t.saveSuccess);
   }, [palette, paletteName, paletteMemo, t, showToast]);
 
   // Load palette from JSON file
   const loadPaletteFile = useCallback(() => {
     fileInputRef.current?.click();
-    setShowSaveMenu(false);
   }, []);
 
   const handleFileLoad = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -813,48 +810,6 @@ function App() {
                   );
                 })}
 
-                {/* Save/Load button */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSaveMenu((v) => !v)}
-                    className="h-11 px-4 rounded-full font-bold text-sm flex items-center gap-2 border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
-                    title={`${t.saveFile} / ${t.loadFile}`}
-                    data-testid="btn-save-menu"
-                  >
-                    <MatIcon name="save" size={18} />
-                    {t.saveFile}
-                  </button>
-                  <AnimatePresence>
-                    {showSaveMenu && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowSaveMenu(false)} />
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                          className="absolute right-0 top-12 z-50 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 w-40 overflow-hidden"
-                        >
-                          <button
-                            onClick={savePaletteFile}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                            data-testid="btn-save-file"
-                          >
-                            <MatIcon name="save" size={18} className="text-primary" />
-                            {t.saveFile}
-                          </button>
-                          <button
-                            onClick={loadPaletteFile}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                            data-testid="btn-load-file"
-                          >
-                            <MatIcon name="upload" size={18} className="text-primary" />
-                            {t.loadFile}
-                          </button>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
               </div>
             </section>
 
@@ -1236,6 +1191,24 @@ function App() {
                       >
                         <MatIcon name="content_copy" size={22} />
                         {t.copyClipboard}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={savePaletteFile}
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 min-h-[44px] rounded-xl bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-700 font-bold text-sm transition-colors border border-emerald-200"
+                        data-testid="btn-save-file"
+                      >
+                        <MatIcon name="save" size={18} />
+                        {t.saveFile}
+                      </button>
+                      <button
+                        onClick={loadPaletteFile}
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 min-h-[44px] rounded-xl bg-amber-50 hover:bg-amber-100 active:bg-amber-200 text-amber-700 font-bold text-sm transition-colors border border-amber-200"
+                        data-testid="btn-load-file"
+                      >
+                        <MatIcon name="upload" size={18} />
+                        {t.loadFile}
                       </button>
                     </div>
                   </div>
