@@ -36,7 +36,8 @@ function extractFlagColors(iso: string, colorKeys: string[]): Promise<Record<str
     img.onload = () => {
       try {
         const canvas = document.createElement("canvas");
-        const scale = Math.min(1, 80 / Math.max(img.width, img.height, 1));
+        // Keep close to native 160px — preserves thin elements like Korea's trigrams
+        const scale = Math.min(1, 160 / Math.max(img.width, img.height, 1));
         canvas.width = Math.max(1, Math.round(img.width * scale));
         canvas.height = Math.max(1, Math.round(img.height * scale));
         const ctx = canvas.getContext("2d");
@@ -49,8 +50,8 @@ function extractFlagColors(iso: string, colorKeys: string[]): Promise<Record<str
           return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)] as [number, number, number];
         });
 
-        // Assign each opaque pixel to nearest color key bucket
-        const buckets: number[][] = colorKeys.map(() => []);
+        // Assign each opaque pixel to nearest color bucket, storing squared distance
+        const buckets: { r: number; g: number; b: number; d: number }[][] = colorKeys.map(() => []);
         for (let i = 0; i < data.length; i += 4) {
           if (data[i + 3] < 128) continue;
           const r = data[i], g = data[i + 1], b = data[i + 2];
@@ -59,20 +60,22 @@ function extractFlagColors(iso: string, colorKeys: string[]): Promise<Record<str
             const d = (r - tr) ** 2 + (g - tg) ** 2 + (b - tb) ** 2;
             if (d < minDist) { minDist = d; minIdx = idx; }
           });
-          buckets[minIdx].push(r, g, b);
+          buckets[minIdx].push({ r, g, b, d: minDist });
         }
 
         const result: Record<string, string> = {};
         colorKeys.forEach((key, idx) => {
           const bucket = buckets[idx];
-          if (bucket.length === 0) {
-            result[key] = COLOR_HEX[key] || "#888888";
-          } else {
-            const count = bucket.length / 3;
-            let sr = 0, sg = 0, sb = 0;
-            for (let i = 0; i < bucket.length; i += 3) { sr += bucket[i]; sg += bucket[i + 1]; sb += bucket[i + 2]; }
-            result[key] = `#${[Math.round(sr / count), Math.round(sg / count), Math.round(sb / count)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
-          }
+          if (bucket.length === 0) { result[key] = COLOR_HEX[key] || "#888888"; return; }
+
+          // Sort ascending by distance — closest pixels are the most "pure" representatives
+          bucket.sort((a, b) => a.d - b.d);
+          // Use top 40% most representative pixels (min 5) to exclude anti-aliased borders
+          const keep = Math.max(5, Math.floor(bucket.length * 0.4));
+          const top = bucket.slice(0, keep);
+          let sr = 0, sg = 0, sb = 0;
+          top.forEach(({ r, g, b }) => { sr += r; sg += g; sb += b; });
+          result[key] = `#${[Math.round(sr / top.length), Math.round(sg / top.length), Math.round(sb / top.length)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
         });
 
         flagColorCache.set(cacheKey, result);
@@ -995,13 +998,21 @@ function App() {
                       <div className="flex flex-wrap gap-2">
                         {selectedCountry.colors.map((c) => {
                           const hex = flagHexColors[c] || COLOR_HEX[c] || c;
+                          const hexUpper = hex.toUpperCase();
                           return (
-                          <div key={c} className="flex items-center gap-2 pl-2 pr-4 h-10 rounded-full border border-slate-200 bg-white shadow-sm">
+                          <div key={c} className="flex items-center gap-1.5 pl-2 pr-2 h-10 rounded-full border border-slate-200 bg-white shadow-sm">
                             <div
-                              className={`w-6 h-6 rounded-full border shadow-inner ${c === "white" ? "border-slate-300" : "border-transparent"}`}
+                              className={`w-6 h-6 rounded-full border shadow-inner flex-shrink-0 ${c === "white" ? "border-slate-300" : "border-transparent"}`}
                               style={{ backgroundColor: hex }}
                             />
-                            <span className="text-sm font-bold text-slate-700 font-mono tracking-tight">{hex.toUpperCase()}</span>
+                            <span className="text-sm font-bold text-slate-700 font-mono tracking-tight">{hexUpper}</span>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(hexUpper); showToast(t.copied); }}
+                              className="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0 p-1"
+                              title={t.copyClipboard}
+                            >
+                              <Copy size={12} />
+                            </button>
                           </div>
                           );
                         })}
