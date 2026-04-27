@@ -711,48 +711,6 @@ function App() {
                   )}
                 </button>
 
-                {/* Save/Load button */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSaveMenu((v) => !v)}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
-                    title={`${t.saveFile} / ${t.loadFile}`}
-                    data-testid="btn-save-menu"
-                  >
-                    <MatIcon name="save" size={18} />
-                  </button>
-                  <AnimatePresence>
-                    {showSaveMenu && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowSaveMenu(false)} />
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                          className="absolute right-0 top-11 z-50 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 w-40 overflow-hidden"
-                        >
-                          <button
-                            onClick={savePaletteFile}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                            data-testid="btn-save-file"
-                          >
-                            <MatIcon name="save" size={18} className="text-primary" />
-                            {t.saveFile}
-                          </button>
-                          <button
-                            onClick={loadPaletteFile}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                            data-testid="btn-load-file"
-                          >
-                            <MatIcon name="upload" size={18} className="text-primary" />
-                            {t.loadFile}
-                          </button>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-
                 {/* Language selector */}
                 <div className="flex items-center gap-1 sm:gap-1.5">
                   <MatIcon name="language" size={18} className="text-slate-400 hidden xs:inline-block sm:inline-block" />
@@ -819,7 +777,7 @@ function App() {
               </div>
 
               {/* Color buttons - circles only, centered */}
-              <div className="flex flex-wrap justify-center gap-2.5">
+              <div className="flex flex-wrap justify-center gap-2.5 relative">
                 {/* All button */}
                 <button
                   onClick={() => setSelectedColor(null)}
@@ -854,6 +812,49 @@ function App() {
                     </button>
                   );
                 })}
+
+                {/* Save/Load button */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSaveMenu((v) => !v)}
+                    className="h-11 px-4 rounded-full font-bold text-sm flex items-center gap-2 border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
+                    title={`${t.saveFile} / ${t.loadFile}`}
+                    data-testid="btn-save-menu"
+                  >
+                    <MatIcon name="save" size={18} />
+                    {t.saveFile}
+                  </button>
+                  <AnimatePresence>
+                    {showSaveMenu && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowSaveMenu(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                          className="absolute right-0 top-12 z-50 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 w-40 overflow-hidden"
+                        >
+                          <button
+                            onClick={savePaletteFile}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                            data-testid="btn-save-file"
+                          >
+                            <MatIcon name="save" size={18} className="text-primary" />
+                            {t.saveFile}
+                          </button>
+                          <button
+                            onClick={loadPaletteFile}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                            data-testid="btn-load-file"
+                          >
+                            <MatIcon name="upload" size={18} className="text-primary" />
+                            {t.loadFile}
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </section>
 
