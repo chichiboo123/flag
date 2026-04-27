@@ -2,13 +2,16 @@ import React, { useState, useMemo, useRef, useCallback, useEffect } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Search, X, Globe2, BookmarkPlus, BookmarkCheck, Download, Copy, FileImage, Trash2, Layers, Save, HelpCircle, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { countries, Country, CONTINENTS, COLOR_LABELS, COLOR_HEX } from "@/data/countries";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 const queryClient = new QueryClient();
+
+function MatIcon({ name, size = 24, className = "" }: { name: string; size?: number; className?: string }) {
+  return <span className={`material-icons select-none leading-none ${className}`} style={{ fontSize: size }}>{name}</span>;
+}
 
 const CUSTOM_FLAGS: Record<string, string> = {
   AN: "/an.png",
@@ -397,7 +400,7 @@ function FlagCard({
         title={inPalette ? t.removeFromPalette : t.addToPalette}
         data-testid={`btn-palette-${country.iso}`}
       >
-        {inPalette ? <BookmarkCheck size={15} /> : <BookmarkPlus size={15} />}
+        {inPalette ? <MatIcon name="bookmark_added" size={16} /> : <MatIcon name="bookmark_add" size={16} />}
       </button>
 
       <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center relative">
@@ -471,7 +474,7 @@ function PaletteFlagItem({ country, lang, onRemove }: { country: Country; lang: 
         className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
         data-testid={`btn-remove-palette-${country.iso}`}
       >
-        <X size={12} />
+        <MatIcon name="close" size={16} />
       </button>
     </div>
   );
@@ -675,29 +678,31 @@ function App() {
 
           {/* Header */}
           <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm">
-            <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm">
-                  <Globe2 size={24} />
+            <div className="max-w-6xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+              {/* Logo + Title */}
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm flex-shrink-0">
+                  <MatIcon name="public" size={22} />
                 </div>
-                <div>
-                  <h1 className="font-extrabold text-xl text-slate-800 leading-tight tracking-tight">
+                <div className="min-w-0">
+                  <h1 className="font-extrabold text-base sm:text-xl text-slate-800 leading-tight tracking-tight truncate">
                     {t.appTitle}
                   </h1>
-                  <p className="text-xs text-slate-500 font-medium hidden sm:block">
+                  <p className="text-xs text-slate-500 font-medium hidden sm:block truncate">
                     {t.subtitle}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Nav buttons – flex-shrink-0 so they never push the title */}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 {/* My Palette button */}
                 <button
                   onClick={() => setShowPalette(true)}
-                  className="relative flex items-center gap-2 h-9 px-4 rounded-full bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 transition-colors border border-primary/20"
+                  className="relative flex items-center gap-1.5 h-9 sm:h-10 px-3 sm:px-4 rounded-full bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 transition-colors border border-primary/20"
                   data-testid="btn-open-palette"
                 >
-                  <Layers size={16} />
+                  <MatIcon name="layers" size={18} />
                   <span className="hidden sm:inline">{t.myPalette}</span>
                   {palette.length > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-extrabold rounded-full flex items-center justify-center shadow">
@@ -710,11 +715,11 @@ function App() {
                 <div className="relative">
                   <button
                     onClick={() => setShowSaveMenu((v) => !v)}
-                    className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
                     title={`${t.saveFile} / ${t.loadFile}`}
                     data-testid="btn-save-menu"
                   >
-                    <Save size={17} />
+                    <MatIcon name="save" size={18} />
                   </button>
                   <AnimatePresence>
                     {showSaveMenu && (
@@ -731,7 +736,7 @@ function App() {
                             className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                             data-testid="btn-save-file"
                           >
-                            <Save size={15} className="text-primary" />
+                            <MatIcon name="save" size={18} className="text-primary" />
                             {t.saveFile}
                           </button>
                           <button
@@ -739,7 +744,7 @@ function App() {
                             className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                             data-testid="btn-load-file"
                           >
-                            <Upload size={15} className="text-primary" />
+                            <MatIcon name="upload" size={18} className="text-primary" />
                             {t.loadFile}
                           </button>
                         </motion.div>
@@ -749,12 +754,12 @@ function App() {
                 </div>
 
                 {/* Language selector */}
-                <div className="flex items-center gap-1.5">
-                  <span className="material-icons text-slate-400 text-sm">language</span>
+                <div className="flex items-center gap-1 sm:gap-1.5">
+                  <MatIcon name="language" size={18} className="text-slate-400 hidden xs:inline-block sm:inline-block" />
                   <select
                     value={lang}
                     onChange={(e) => setLang(e.target.value as LangKey)}
-                    className="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer pr-1"
+                    className="bg-transparent text-xs sm:text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer max-w-[64px] sm:max-w-none"
                     data-testid="select-language"
                   >
                     <option value="ko">한국어</option>
@@ -767,11 +772,11 @@ function App() {
                 {/* Help button */}
                 <button
                   onClick={() => setShowHelp(true)}
-                  className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
                   title={t.help}
                   data-testid="btn-help"
                 >
-                  <HelpCircle size={18} />
+                  <MatIcon name="help_outline" size={20} />
                 </button>
               </div>
             </div>
@@ -783,7 +788,8 @@ function App() {
             <section className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <h2 className="font-bold text-lg text-slate-700 flex items-center gap-2">
-                  🎨 {t.colors}
+                  <MatIcon name="color_lens" size={22} className="text-primary" />
+                  {t.colors}
                 </h2>
                 <div className="flex items-center gap-2 ml-auto">
                   <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">{t.colorThreshold}</span>
@@ -800,8 +806,8 @@ function App() {
                             if (!stillValid) setSelectedColor(null);
                           }
                         }}
-                        className={`px-3 py-1.5 text-xs font-bold transition-all ${
-                          threshold === th.value ? "bg-primary text-white" : "text-slate-500 hover:bg-slate-50"
+                        className={`px-3 py-2 text-xs font-bold transition-all min-h-[36px] ${
+                          threshold === th.value ? "bg-primary text-white" : "text-slate-500 hover:bg-slate-50 active:bg-slate-100"
                         }`}
                         data-testid={`btn-threshold-${th.value}`}
                       >
@@ -852,35 +858,36 @@ function App() {
             </section>
 
             {/* Controls Bar */}
-            <section className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+            <section className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-100">
               <div className="relative w-full sm:max-w-xs group">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                  <Search className="w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                  <MatIcon name="search" size={20} className="text-slate-400 group-focus-within:text-primary transition-colors" />
                 </div>
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t.searchPlaceholder}
-                  className="w-full h-11 pl-10 pr-10 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400"
+                  className="w-full h-11 pl-10 pr-10 rounded-xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-primary/20 focus:outline-none text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400"
                   data-testid="input-search"
                 />
                 {search && (
                   <button onClick={() => setSearch("")} className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600">
-                    <X className="w-4 h-4" />
+                    <MatIcon name="close" size={18} />
                   </button>
                 )}
               </div>
 
-              <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                <span className="text-sm font-semibold text-slate-500 whitespace-nowrap bg-slate-100 px-3 py-1.5 rounded-lg">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <span className="text-xs sm:text-sm font-semibold text-slate-500 whitespace-nowrap bg-slate-100 px-3 py-2 rounded-lg h-10 flex items-center">
                   {t.showingCount(filteredAndSortedCountries.length, countries.length)}
                 </span>
-                <div className="relative flex items-center bg-slate-50 rounded-xl h-11 px-3 border border-slate-100 focus-within:ring-2 focus-within:ring-primary/20">
+                <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl h-10 px-3 border border-slate-100 focus-within:ring-2 focus-within:ring-primary/20">
+                  <MatIcon name="sort" size={18} className="text-slate-400 flex-shrink-0" />
                   <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value)}
-                    className="bg-transparent text-sm font-bold text-slate-600 focus:outline-none cursor-pointer w-full"
+                    className="bg-transparent text-xs sm:text-sm font-bold text-slate-600 focus:outline-none cursor-pointer"
                     data-testid="select-sort"
                   >
                     <option value="name-asc">{t.sortNameAsc}</option>
@@ -953,7 +960,7 @@ function App() {
                     className="absolute top-4 right-4 w-10 h-10 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-colors z-20"
                     data-testid="btn-close-modal"
                   >
-                    <X size={20} />
+                    <MatIcon name="close" size={22} />
                   </button>
                   <div className="w-full aspect-[3/2] bg-slate-100 flex items-center justify-center p-8">
                     <img
@@ -986,8 +993,8 @@ function App() {
                           data-testid="btn-modal-palette"
                         >
                           {paletteInSet.has(selectedCountry.iso)
-                            ? <><BookmarkCheck size={16} /> {t.removeFromPalette}</>
-                            : <><BookmarkPlus size={16} /> {t.addToPalette}</>}
+                            ? <><MatIcon name="bookmark_added" size={18} /> {t.removeFromPalette}</>
+                            : <><MatIcon name="bookmark_add" size={18} /> {t.addToPalette}</>}
                         </button>
                       </div>
                       {lang !== "en" && <p className="text-slate-500 font-medium">{selectedCountry.en}</p>}
@@ -1022,7 +1029,7 @@ function App() {
                               className="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0 p-1"
                               title={t.copyClipboard}
                             >
-                              <Copy size={12} />
+                              <MatIcon name="content_copy" size={14} />
                             </button>
                           </div>
                           );
@@ -1054,7 +1061,7 @@ function App() {
                   <div className="flex items-center justify-between px-7 pt-7 pb-4 border-b border-slate-100">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                        <HelpCircle size={20} />
+                        <MatIcon name="help_outline" size={22} />
                       </div>
                       <h2 className="text-xl font-extrabold text-slate-800">{t.help}</h2>
                     </div>
@@ -1062,7 +1069,7 @@ function App() {
                       onClick={() => setShowHelp(false)}
                       className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
                     >
-                      <X size={18} />
+                      <MatIcon name="close" size={20} />
                     </button>
                   </div>
 
@@ -1124,7 +1131,7 @@ function App() {
                 >
                   <div className="flex items-center justify-between p-5 border-b border-slate-100">
                     <div className="flex items-center gap-2">
-                      <Layers size={20} className="text-primary" />
+                      <MatIcon name="layers" size={22} className="text-primary" />
                       <h2 className="font-extrabold text-xl text-slate-800">{t.myPalette}</h2>
                       {palette.length > 0 && (
                         <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
@@ -1137,7 +1144,7 @@ function App() {
                       className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
                       data-testid="btn-close-palette"
                     >
-                      <X size={18} />
+                      <MatIcon name="close" size={20} />
                     </button>
                   </div>
 
@@ -1169,7 +1176,7 @@ function App() {
                   <div className="flex-1 overflow-y-auto px-5 py-2">
                     {palette.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
-                        <Layers size={48} className="opacity-20" />
+                        <MatIcon name="layers" size={48} className="opacity-20" />
                         <p className="text-sm font-medium text-center leading-relaxed max-w-xs">{t.paletteEmpty}</p>
                       </div>
                     ) : (
@@ -1195,38 +1202,38 @@ function App() {
                     {palette.length > 0 && (
                       <button
                         onClick={() => setPalette([])}
-                        className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 font-semibold self-end transition-colors mb-1"
+                        className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 font-semibold self-end transition-colors mb-1 min-h-[36px] px-2 rounded-lg hover:bg-red-50 active:bg-red-100"
                         data-testid="btn-clear-palette"
                       >
-                        <Trash2 size={13} /> {t.clearAll}
+                        <MatIcon name="delete_outline" size={16} /> {t.clearAll}
                       </button>
                     )}
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         onClick={exportJPG}
                         disabled={palette.length === 0}
-                        className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-sky-200"
+                        className="flex flex-col items-center gap-1.5 px-2 py-3 min-h-[60px] rounded-xl bg-sky-50 hover:bg-sky-100 active:bg-sky-200 text-sky-600 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-sky-200"
                         data-testid="btn-export-jpg"
                       >
-                        <FileImage size={18} />
+                        <MatIcon name="image" size={22} />
                         {t.exportJPG}
                       </button>
                       <button
                         onClick={exportPDF}
                         disabled={palette.length === 0}
-                        className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-red-200"
+                        className="flex flex-col items-center gap-1.5 px-2 py-3 min-h-[60px] rounded-xl bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-500 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-red-200"
                         data-testid="btn-export-pdf"
                       >
-                        <Download size={18} />
+                        <MatIcon name="picture_as_pdf" size={22} />
                         {t.exportPDF}
                       </button>
                       <button
                         onClick={copyToClipboard}
                         disabled={palette.length === 0}
-                        className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-600 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-violet-200"
+                        className="flex flex-col items-center gap-1.5 px-2 py-3 min-h-[60px] rounded-xl bg-violet-50 hover:bg-violet-100 active:bg-violet-200 text-violet-600 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-violet-200"
                         data-testid="btn-export-clipboard"
                       >
-                        <Copy size={18} />
+                        <MatIcon name="content_copy" size={22} />
                         {t.copyClipboard}
                       </button>
                     </div>
