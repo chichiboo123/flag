@@ -2,13 +2,23 @@ import React, { useState, useMemo, useRef, useCallback } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Search, X, Globe2, BookmarkPlus, BookmarkCheck, Download, Copy, FileImage, Trash2, ChevronRight, Layers } from "lucide-react";
+import { Search, X, Globe2, BookmarkPlus, BookmarkCheck, Download, Copy, FileImage, Trash2, Layers } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { countries, Country, CONTINENTS, COLOR_LABELS, COLOR_HEX } from "@/data/countries";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 const queryClient = new QueryClient();
+
+// Custom flag images for countries not supported by flagcdn
+const CUSTOM_FLAGS: Record<string, string> = {
+  AN: "/an.png",
+};
+
+function getFlagSrc(iso: string, size: number): string {
+  if (CUSTOM_FLAGS[iso]) return CUSTOM_FLAGS[iso];
+  return `https://flagcdn.com/w${size}/${iso.toLowerCase()}.png`;
+}
 
 const I18N = {
   ko: {
@@ -38,6 +48,8 @@ const I18N = {
     myPalette: "나만의 팔레트",
     paletteName: "팔레트 이름",
     paletteNamePlaceholder: "팔레트 이름을 입력하세요...",
+    paletteMemo: "메모",
+    paletteMemoPlaceholder: "이 팔레트에 대한 메모를 남겨보세요...",
     exportJPG: "JPG 저장",
     exportPDF: "PDF 저장",
     copyClipboard: "클립보드 복사",
@@ -45,6 +57,7 @@ const I18N = {
     paletteCount: (n: number) => `국기 ${n}개`,
     copied: "클립보드에 복사됨!",
     exportSuccess: "저장 완료!",
+    clearAll: "전체 비우기",
   },
   en: {
     appTitle: "Flag Palette",
@@ -73,6 +86,8 @@ const I18N = {
     myPalette: "My Palette",
     paletteName: "Palette Name",
     paletteNamePlaceholder: "Enter palette name...",
+    paletteMemo: "Memo",
+    paletteMemoPlaceholder: "Write a memo for this palette...",
     exportJPG: "Save as JPG",
     exportPDF: "Save as PDF",
     copyClipboard: "Copy to Clipboard",
@@ -80,6 +95,7 @@ const I18N = {
     paletteCount: (n: number) => `${n} flag${n !== 1 ? "s" : ""}`,
     copied: "Copied to clipboard!",
     exportSuccess: "Saved!",
+    clearAll: "Clear All",
   },
   ja: {
     appTitle: "国旗パレット",
@@ -108,6 +124,8 @@ const I18N = {
     myPalette: "マイパレット",
     paletteName: "パレット名",
     paletteNamePlaceholder: "パレット名を入力...",
+    paletteMemo: "メモ",
+    paletteMemoPlaceholder: "このパレットについてメモを残しましょう...",
     exportJPG: "JPGで保存",
     exportPDF: "PDFで保存",
     copyClipboard: "クリップボードにコピー",
@@ -115,6 +133,7 @@ const I18N = {
     paletteCount: (n: number) => `国旗 ${n}枚`,
     copied: "クリップボードにコピーしました！",
     exportSuccess: "保存しました！",
+    clearAll: "全て削除",
   },
   zh: {
     appTitle: "国旗调色板",
@@ -143,6 +162,8 @@ const I18N = {
     myPalette: "我的调色板",
     paletteName: "调色板名称",
     paletteNamePlaceholder: "输入调色板名称...",
+    paletteMemo: "备注",
+    paletteMemoPlaceholder: "为这个调色板写下备注...",
     exportJPG: "保存为JPG",
     exportPDF: "保存为PDF",
     copyClipboard: "复制到剪贴板",
@@ -150,6 +171,7 @@ const I18N = {
     paletteCount: (n: number) => `${n} 面国旗`,
     copied: "已复制到剪贴板！",
     exportSuccess: "保存成功！",
+    clearAll: "清空全部",
   },
 };
 
@@ -162,7 +184,7 @@ function getColorsByThreshold(country: Country, threshold: Threshold): string[] 
   const colors = country.colors;
   if (threshold === "80") return colors.slice(0, 1);
   if (threshold === "50") return colors.slice(0, 2);
-  return colors; // 30%: all colors
+  return colors;
 }
 
 function FlagCard({
@@ -214,7 +236,7 @@ function FlagCard({
           </div>
         ) : (
           <img
-            src={`https://flagcdn.com/w160/${country.iso.toLowerCase()}.png`}
+            src={getFlagSrc(country.iso, 160)}
             alt={`${name} flag`}
             className="w-full h-full object-cover object-center"
             onError={() => setImgError(true)}
@@ -262,7 +284,7 @@ function PaletteFlagItem({ country, lang, onRemove }: { country: Country; lang: 
           <span className="text-xs text-slate-400">{t.imageLoading}</span>
         ) : (
           <img
-            src={`https://flagcdn.com/w80/${country.iso.toLowerCase()}.png`}
+            src={getFlagSrc(country.iso, 80)}
             alt={name}
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
@@ -270,7 +292,7 @@ function PaletteFlagItem({ country, lang, onRemove }: { country: Country; lang: 
         )}
       </div>
       <div className="px-2 py-1.5 text-center">
-        <p className="text-xs font-bold text-slate-700 truncate">{name}</p>
+        <p className="text-xs font-bold text-slate-700 break-words leading-tight">{name}</p>
       </div>
       <button
         onClick={() => onRemove(country.iso)}
@@ -293,6 +315,7 @@ function App() {
   const [palette, setPalette] = useState<Country[]>([]);
   const [showPalette, setShowPalette] = useState(false);
   const [paletteName, setPaletteName] = useState("");
+  const [paletteMemo, setPaletteMemo] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
   const paletteExportRef = useRef<HTMLDivElement>(null);
@@ -315,6 +338,15 @@ function App() {
   const removeFromPalette = useCallback((iso: string) => {
     setPalette((prev) => prev.filter((c) => c.iso !== iso));
   }, []);
+
+  // Compute which colors have at least 1 country at the current threshold
+  const activeColors = useMemo(() => {
+    const set = new Set<string>();
+    countries.forEach((c) => {
+      getColorsByThreshold(c, threshold).forEach((col) => set.add(col));
+    });
+    return set;
+  }, [threshold]);
 
   const filteredAndSortedCountries = useMemo(() => {
     let result = countries;
@@ -424,7 +456,6 @@ function App() {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* Palette toggle button */}
                 <button
                   onClick={() => setShowPalette(true)}
                   className="relative flex items-center gap-2 h-9 px-4 rounded-full bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 transition-colors border border-primary/20"
@@ -465,14 +496,22 @@ function App() {
                 <h2 className="font-bold text-lg text-slate-700 flex items-center gap-2">
                   🎨 {t.colors}
                 </h2>
-                {/* Threshold selector */}
                 <div className="flex items-center gap-2 ml-auto">
                   <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">{t.colorThreshold}</span>
                   <div className="flex rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm">
                     {thresholds.map((th) => (
                       <button
                         key={th.value}
-                        onClick={() => setThreshold(th.value)}
+                        onClick={() => {
+                          setThreshold(th.value);
+                          // Clear selected color if it becomes invalid for new threshold
+                          if (selectedColor) {
+                            const stillValid = countries.some(c =>
+                              getColorsByThreshold(c, th.value).includes(selectedColor)
+                            );
+                            if (!stillValid) setSelectedColor(null);
+                          }
+                        }}
                         className={`px-3 py-1.5 text-xs font-bold transition-all ${
                           threshold === th.value
                             ? "bg-primary text-white"
@@ -487,7 +526,7 @@ function App() {
                 </div>
               </div>
 
-              {/* Color buttons - centered */}
+              {/* Color buttons - centered, only show colors with results */}
               <div className="flex flex-wrap justify-center gap-3">
                 <button
                   onClick={() => setSelectedColor(null)}
@@ -501,7 +540,7 @@ function App() {
                   {t.all}
                 </button>
 
-                {FILTER_COLORS.map((c) => {
+                {FILTER_COLORS.filter((c) => activeColors.has(c)).map((c) => {
                   const isSelected = selectedColor === c;
                   return (
                     <button
@@ -628,7 +667,7 @@ function App() {
 
                   <div className="w-full aspect-[3/2] bg-slate-100 flex items-center justify-center p-8">
                     <img
-                      src={`https://flagcdn.com/w320/${selectedCountry.iso.toLowerCase()}.png`}
+                      src={getFlagSrc(selectedCountry.iso, 320)}
                       alt="Flag"
                       className="max-w-full max-h-full object-contain drop-shadow-md rounded"
                       onError={(e) => {
@@ -755,19 +794,34 @@ function App() {
                     </button>
                   </div>
 
-                  {/* Palette name input */}
-                  <div className="px-5 pt-4 pb-3">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                      {t.paletteName}
-                    </label>
-                    <input
-                      type="text"
-                      value={paletteName}
-                      onChange={(e) => setPaletteName(e.target.value)}
-                      placeholder={t.paletteNamePlaceholder}
-                      className="w-full h-11 px-4 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:outline-none text-slate-700 font-semibold placeholder:font-normal placeholder:text-slate-400"
-                      data-testid="input-palette-name"
-                    />
+                  {/* Palette name + memo inputs */}
+                  <div className="px-5 pt-4 pb-3 flex flex-col gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                        {t.paletteName}
+                      </label>
+                      <input
+                        type="text"
+                        value={paletteName}
+                        onChange={(e) => setPaletteName(e.target.value)}
+                        placeholder={t.paletteNamePlaceholder}
+                        className="w-full h-11 px-4 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:outline-none text-slate-700 font-semibold placeholder:font-normal placeholder:text-slate-400"
+                        data-testid="input-palette-name"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                        {t.paletteMemo}
+                      </label>
+                      <textarea
+                        value={paletteMemo}
+                        onChange={(e) => setPaletteMemo(e.target.value)}
+                        placeholder={t.paletteMemoPlaceholder}
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:outline-none text-slate-700 font-medium placeholder:font-normal placeholder:text-slate-400 resize-none text-sm leading-relaxed"
+                        data-testid="input-palette-memo"
+                      />
+                    </div>
                   </div>
 
                   {/* Flag grid */}
@@ -810,7 +864,7 @@ function App() {
                         className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 font-semibold self-end transition-colors mb-1"
                         data-testid="btn-clear-palette"
                       >
-                        <Trash2 size={13} /> 전체 비우기
+                        <Trash2 size={13} /> {t.clearAll}
                       </button>
                     )}
                     <div className="grid grid-cols-3 gap-2">
@@ -858,7 +912,7 @@ function App() {
               width: "900px",
               padding: "40px",
               backgroundColor: "#f8fafc",
-              fontFamily: "'Pretendard', sans-serif",
+              fontFamily: "'Pretendard', 'Inter', sans-serif",
             }}
             aria-hidden="true"
           >
@@ -870,6 +924,22 @@ function App() {
                 {t.appTitle} · {t.paletteCount(palette.length)}
               </p>
             </div>
+
+            {/* Memo section in export */}
+            {paletteMemo && (
+              <div style={{
+                marginBottom: "24px",
+                padding: "16px 20px",
+                backgroundColor: "#fff",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+              }}>
+                <p style={{ fontSize: "13px", color: "#475569", lineHeight: 1.7, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {paletteMemo}
+                </p>
+              </div>
+            )}
+
             <div
               style={{
                 display: "grid",
@@ -890,17 +960,24 @@ function App() {
                 >
                   <div style={{ aspectRatio: "4/3", overflow: "hidden", backgroundColor: "#f1f5f9" }}>
                     <img
-                      src={`https://flagcdn.com/w80/${country.iso.toLowerCase()}.png`}
+                      src={getFlagSrc(country.iso, 80)}
                       alt={country.en}
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                       crossOrigin="anonymous"
                     />
                   </div>
                   <div style={{ padding: "8px 10px 10px" }}>
-                    <p style={{ fontSize: "11px", fontWeight: 700, color: "#334155", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      color: "#334155",
+                      margin: 0,
+                      wordBreak: "break-word",
+                      lineHeight: 1.4,
+                    }}>
                       {country[lang as keyof Country] as string}
                     </p>
-                    <p style={{ fontSize: "10px", color: "#94a3b8", margin: "2px 0 0", fontFamily: "monospace" }}>
+                    <p style={{ fontSize: "10px", color: "#94a3b8", margin: "3px 0 0", fontFamily: "monospace" }}>
                       {country.iso}
                     </p>
                   </div>
