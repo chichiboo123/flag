@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "국기 팔레트 (Colors of Flags)"
+version = "1.0.0"
+id = "artifacts/flag-palette"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24703
+
+[services.development]
+run = "pnpm --filter @workspace/flag-palette run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/flag-palette", "run", "build" ]
+publicDir = "artifacts/flag-palette/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24703"
+BASE_PATH = "/"
