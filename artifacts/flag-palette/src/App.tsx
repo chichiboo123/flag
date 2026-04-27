@@ -15,6 +15,7 @@ function MatIcon({ name, size = 24, className = "" }: { name: string; size?: num
 
 const CUSTOM_FLAGS: Record<string, string> = {
   AN: "/an.png",
+  KK: "/KK.png",
 };
 
 const EXTRACTION_COLOR_HEX: Record<string, string> = {
