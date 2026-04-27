@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from "react";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +17,74 @@ const CUSTOM_FLAGS: Record<string, string> = {
 function getFlagSrc(iso: string, size: number): string {
   if (CUSTOM_FLAGS[iso]) return CUSTOM_FLAGS[iso];
   return `https://flagcdn.com/w${size}/${iso.toLowerCase()}.png`;
+}
+
+// Cache for extracted flag hex colors
+const flagColorCache = new Map<string, Record<string, string>>();
+
+function extractFlagColors(iso: string, colorKeys: string[]): Promise<Record<string, string>> {
+  const cacheKey = iso;
+  if (flagColorCache.has(cacheKey)) return Promise.resolve(flagColorCache.get(cacheKey)!);
+
+  return new Promise((resolve) => {
+    if (colorKeys.length === 0) { resolve({}); return; }
+
+    const src = CUSTOM_FLAGS[iso] || `https://flagcdn.com/w160/${iso.toLowerCase()}.png`;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, 80 / Math.max(img.width, img.height, 1));
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve({}); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const targets = colorKeys.map((key) => {
+          const hex = COLOR_HEX[key] || "#888888";
+          return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)] as [number, number, number];
+        });
+
+        // Assign each opaque pixel to nearest color key bucket
+        const buckets: number[][] = colorKeys.map(() => []);
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 128) continue;
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          let minDist = Infinity, minIdx = 0;
+          targets.forEach(([tr, tg, tb], idx) => {
+            const d = (r - tr) ** 2 + (g - tg) ** 2 + (b - tb) ** 2;
+            if (d < minDist) { minDist = d; minIdx = idx; }
+          });
+          buckets[minIdx].push(r, g, b);
+        }
+
+        const result: Record<string, string> = {};
+        colorKeys.forEach((key, idx) => {
+          const bucket = buckets[idx];
+          if (bucket.length === 0) {
+            result[key] = COLOR_HEX[key] || "#888888";
+          } else {
+            const count = bucket.length / 3;
+            let sr = 0, sg = 0, sb = 0;
+            for (let i = 0; i < bucket.length; i += 3) { sr += bucket[i]; sg += bucket[i + 1]; sb += bucket[i + 2]; }
+            result[key] = `#${[Math.round(sr / count), Math.round(sg / count), Math.round(sb / count)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+          }
+        });
+
+        flagColorCache.set(cacheKey, result);
+        resolve(result);
+      } catch {
+        resolve({});
+      }
+    };
+
+    img.onerror = () => resolve({});
+    img.src = src;
+  });
 }
 
 const HELP_CONTENT = {
@@ -350,7 +418,7 @@ function FlagCard({
             key={c}
             className="w-4 h-4 rounded-full border shadow-sm border-black/5"
             style={{ backgroundColor: COLOR_HEX[c] || c }}
-            title={COLOR_LABELS[lang]?.[c] || c}
+            title={(COLOR_HEX[c] || c).toUpperCase()}
           />
         ))}
         {country.colors.length > 5 && (
@@ -417,6 +485,12 @@ function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [flagHexColors, setFlagHexColors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!selectedCountry) { setFlagHexColors({}); return; }
+    extractFlagColors(selectedCountry.iso, selectedCountry.colors).then(setFlagHexColors);
+  }, [selectedCountry]);
 
   const paletteExportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -919,15 +993,18 @@ function App() {
                     <div>
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">{t.colors}</span>
                       <div className="flex flex-wrap gap-2">
-                        {selectedCountry.colors.map((c) => (
+                        {selectedCountry.colors.map((c) => {
+                          const hex = flagHexColors[c] || COLOR_HEX[c] || c;
+                          return (
                           <div key={c} className="flex items-center gap-2 pl-2 pr-4 h-10 rounded-full border border-slate-200 bg-white shadow-sm">
                             <div
                               className={`w-6 h-6 rounded-full border shadow-inner ${c === "white" ? "border-slate-300" : "border-transparent"}`}
-                              style={{ backgroundColor: COLOR_HEX[c] || c }}
+                              style={{ backgroundColor: hex }}
                             />
-                            <span className="text-sm font-bold text-slate-700">{COLOR_LABELS[lang]?.[c] || c}</span>
+                            <span className="text-sm font-bold text-slate-700 font-mono tracking-tight">{hex.toUpperCase()}</span>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
